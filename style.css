@@ -1,0 +1,85 @@
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #1f1f24;
+  color: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  display: flex;
+  justify-content: center;
+}
+main {
+  width: 100%;
+  max-width: 520px;
+  padding: 16px;
+  text-align: center;
+}
+h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: 2px; }
+#progresso { color: #aaa; font-size: 14px; margin-bottom: 12px; }
+#dica {
+  background: #2d2d35;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+#dica b { color: #d3ad69; }
+
+/* tabuleiro */
+#tabuleiro { display: flex; flex-direction: column; gap: 6px; align-items: center; margin-bottom: 12px; }
+.linha { display: flex; gap: 4px; justify-content: center; }
+.casa {
+  width: var(--t, 48px);
+  height: var(--t, 48px);
+  border: 2px solid #565758;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(var(--t, 48px) * 0.55);
+  font-weight: bold;
+}
+.casa.cheia { border-color: #8a8a8c; }
+.espaco { width: calc(var(--t, 48px) * 0.4); }
+.certa  { background: #3aa394; border-color: #3aa394; }
+.quase  { background: #d3ad69; border-color: #d3ad69; }
+.errada { background: #4c4347; border-color: #4c4347; }
+
+/* mensagem e botão */
+#mensagem { min-height: 48px; margin-bottom: 8px; font-size: 16px; line-height: 1.4; }
+#botao {
+  display: none;
+  margin: 0 auto 12px;
+  padding: 10px 24px;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  background: #3aa394;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* teclado */
+#teclado { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.fila { display: flex; gap: 4px; }
+.tecla {
+  min-width: 30px;
+  height: 46px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: #565758;
+  color: #fff;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.tecla.grande { min-width: 56px; font-size: 13px; }
+.tecla.certa  { background: #3aa394; }
+.tecla.quase  { background: #d3ad69; }
+.tecla.errada { background: #2b2b30; color: #777; }
+
+/* tela final */
+#final h2 { font-size: 28px; }
+#final p { font-size: 18px; }

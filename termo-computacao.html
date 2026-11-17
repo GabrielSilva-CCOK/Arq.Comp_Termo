@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Termo da Computação</title>
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<main>
+  <h1>TERMO DA COMPUTAÇÃO</h1>
+  <div id="progresso"></div>
+
+  <div id="jogo">
+    <div id="dica"></div>
+    <div id="tabuleiro"></div>
+    <div id="mensagem"></div>
+    <button id="botao"></button>
+    <div id="teclado"></div>
+  </div>
+
+  <div id="final" style="display:none"></div>
+</main>
+
+<script>
+  // Quantidade de tentativas por palavra
+  const MAX = 6;
+
+  // Lista de palavras: resp = resposta, nome = nome completo mostrado no fim, dica = ajuda
+  const palavras = [
+    { resp: "CPU", nome: "CPU (Unidade Central de Processamento)",
+      dica: "É o “cérebro” do computador. Executa as instruções dos programas." },
+    { resp: "ULA", nome: "ULA (Unidade Lógica e Aritmética)",
+      dica: "Fica dentro do processador e faz as contas (somar, subtrair) e as comparações." },
+    { resp: "UC", nome: "UC (Unidade de Controle)",
+      dica: "Fica dentro do processador. Dá as ordens e coordena o que cada parte deve fazer." },
+    { resp: "registradores", nome: "Registradores",
+      dica: "Pequenas memórias dentro do processador, super rápidas, que guardam os dados que ele está usando agora." },
+    { resp: "RAM", nome: "RAM (memória de acesso aleatório)",
+      dica: "Memória de trabalho do computador. Guarda o que está aberto, mas perde tudo quando desliga." },
+    { resp: "ROM", nome: "ROM (memória somente de leitura)",
+      dica: "Guarda programas fixos, como o que liga o computador. Normalmente só pode ser lida." },
+    { resp: "EEPROM", nome: "EEPROM",
+      dica: "Guarda dados mesmo sem energia e pode ser apagada e gravada de novo por meio de eletricidade." },
+    { resp: "Flash", nome: "Memória Flash",
+      dica: "Usada em pen drives, cartões SD e SSDs. Mantém os dados sem energia e é bem rápida." },
+    { resp: "cache", nome: "Memória cache",
+      dica: "Memória pequena e muito rápida que guarda cópias do que o processador usa com frequência." },
+    { resp: "memória de massa", nome: "Memória de massa (armazenamento)",
+      dica: "Guarda arquivos e programas por muito tempo, como o HD, o SSD e o pen drive." },
+    { resp: "DMA", nome: "DMA (acesso direto à memória)",
+      dica: "Deixa os dispositivos copiarem dados direto para a memória, sem ocupar o processador." },
+    { resp: "address bus", nome: "Address bus (barramento de endereço)",
+      dica: "Caminho que leva só o “endereço” (o lugar) que o processador quer acessar na memória." },
+    { resp: "data bus", nome: "Data bus (barramento de dados)",
+      dica: "Caminho por onde os dados (o conteúdo) viajam entre o processador, a memória e os dispositivos." }
+  ];
+
+  // Remove acentos e deixa em maiúsculas
+  function normalizar(s) {
+    return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  }
+
+  // Estado do jogo
+  let indice = 0;
+  let pontos = 0;
+  let tentativas = [];
+  let atual = "";
+  let acabou = false;
+  let teclas = {};
+  let letras = "";       // resposta sem espaços
+  let respNorm = "";     // resposta com espaços (para desenhar)
+
+  const $ = id => document.getElementById(id);
+
+  function iniciarPalavra() {
+    const p = palavras[indice];
+    respNorm = normalizar(p.resp);
+    letras = respNorm.replace(/ /g, "");
+    tentativas = [];
+    atual = "";
+    acabou = false;
+    teclas = {};
+    $("mensagem").innerHTML = "";
+    $("botao").style.display = "none";
+    $("progresso").textContent = "Palavra " + (indice + 1) + " de " + palavras.length + " • Acertos: " + pontos;
+    $("dica").innerHTML = "<b>Dica:</b> " + p.dica;
+    ajustarTamanho();
+    desenhar();
+  }
+
+  // Ajusta o tamanho das casas para caber na tela
+  function ajustarTamanho() {
+    const espacos = (respNorm.match(/ /g) || []).length;
+    const largura = Math.min(window.innerWidth, 520) - 40;
+    const t = Math.floor(largura / (letras.length + espacos * 0.4)) - 4;
+    document.documentElement.style.setProperty("--t", Math.max(22, Math.min(52, t)) + "px");
+  }
+
+  // Compara o palpite com a resposta (certa, quase, errada)
+  function avaliar(g) {
+    const res = Array(letras.length).fill("errada");
+    const sobra = {};
+    for (let i = 0; i < letras.length; i++) {
+      if (g[i] === letras[i]) res[i] = "certa";
+      else sobra[letras[i]] = (sobra[letras[i]] || 0) + 1;
+    }
+    for (let i = 0; i < letras.length; i++) {
+      if (res[i] !== "certa" && sobra[g[i]] > 0) {
+        res[i] = "quase";
+        sobra[g[i]]--;
+      }
+    }
+    return res;
+  }
+
+  function criarLinha(r) {
+    const linha = document.createElement("div");
+    linha.className = "linha";
+    const jaEnviada = r < tentativas.length;
+    const txt = jaEnviada ? tentativas[r] : (r === tentativas.length && !acabou ? atual : "");
+    const res = jaEnviada ? avaliar(tentativas[r]) : [];
+    let k = 0;
+    for (const c of respNorm) {
+      if (c === " ") {
+        const e = document.createElement("span");
+        e.className = "espaco";
+        linha.appendChild(e);
+        continue;
+      }
+      const casa = document.createElement("div");
+      casa.className = "casa";
+      if (txt[k]) { casa.textContent = txt[k]; casa.classList.add("cheia"); }
+      if (res[k]) casa.classList.add(res[k]);
+      linha.appendChild(casa);
+      k++;
+    }
+    return linha;
+  }
+
+  function desenhar() {
+    const tab = $("tabuleiro");
+    tab.innerHTML = "";
+    for (let r = 0; r < MAX; r++) tab.appendChild(criarLinha(r));
+    desenharTeclado();
+  }
+
+  const layoutTeclado = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+
+  function desenharTeclado() {
+    const tec = $("teclado");
+    tec.innerHTML = "";
+    layoutTeclado.forEach((fila, n) => {
+      const div = document.createElement("div");
+      div.className = "fila";
+      if (n === 2) div.appendChild(criarTecla("ENTER", "Enter", true));
+      for (const c of fila) div.appendChild(criarTecla(c, c, false));
+      if (n === 2) div.appendChild(criarTecla("⌫", "Backspace", true));
+      tec.appendChild(div);
+    });
+  }
+
+  function criarTecla(texto, valor, grande) {
+    const b = document.createElement("button");
+    b.className = "tecla" + (grande ? " grande" : "");
+    if (teclas[valor]) b.classList.add(teclas[valor]);
+    b.textContent = texto;
+    b.onclick = () => apertar(valor);
+    return b;
+  }
+
+  function apertar(k) {
+    if (acabou) {
+      if (k === "Enter") proxima();
+      return;
+    }
+    if (k === "Backspace") {
+      atual = atual.slice(0, -1);
+    } else if (k === "Enter") {
+      enviar();
+      return;
+    } else if (atual.length < letras.length) {
+      atual += k;
+    }
+    $("mensagem").innerHTML = "";
+    desenhar();
+  }
+
+  function enviar() {
+    if (atual.length < letras.length) {
+      $("mensagem").textContent = "Faltam letras! A palavra tem " + letras.length + " letras.";
+      return;
+    }
+    const res = avaliar(atual);
+    // Atualiza as cores do teclado
+    const prioridade = { errada: 1, quase: 2, certa: 3 };
+    for (let i = 0; i < atual.length; i++) {
+      const c = atual[i];
+      if (!teclas[c] || prioridade[res[i]] > prioridade[teclas[c]]) teclas[c] = res[i];
+    }
+    tentativas.push(atual);
+    const nome = palavras[indice].nome;
+
+    if (atual === letras) {
+      pontos++;
+      acabou = true;
+      $("mensagem").innerHTML = "🎉 <b>Acertou!</b><br>" + nome;
+    } else if (tentativas.length === MAX) {
+      acabou = true;
+      $("mensagem").innerHTML = "😕 A palavra era:<br><b>" + nome + "</b>";
+    }
+    atual = "";
+    desenhar();
+    $("progresso").textContent = "Palavra " + (indice + 1) + " de " + palavras.length + " • Acertos: " + pontos;
+
+    if (acabou) {
+      const ultima = indice === palavras.length - 1;
+      $("botao").textContent = ultima ? "Ver resultado" : "Próxima palavra";
+      $("botao").style.display = "block";
+    }
+  }
+
+  function proxima() {
+    indice++;
+    if (indice >= palavras.length) {
+      mostrarFinal();
+    } else {
+      iniciarPalavra();
+    }
+  }
+
+  function mostrarFinal() {
+    $("jogo").style.display = "none";
+    $("progresso").textContent = "";
+    const f = $("final");
+    f.style.display = "block";
+    f.innerHTML =
+      "<h2>Fim de jogo!</h2>" +
+      "<p>Você acertou <b>" + pontos + "</b> de " + palavras.length + " palavras.</p>" +
+      '<button id="reiniciar" style="padding:10px 24px;font-size:16px;border:none;border-radius:6px;background:#3aa394;color:#fff;cursor:pointer">Jogar de novo</button>';
+    $("reiniciar").onclick = () => {
+      indice = 0;
+      pontos = 0;
+      f.style.display = "none";
+      $("jogo").style.display = "block";
+      iniciarPalavra();
+    };
+  }
+
+  $("botao").onclick = proxima;
+
+  // Teclado físico
+  document.addEventListener("keydown", e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === "Enter" || e.key === "Backspace") {
+      e.preventDefault();
+      apertar(e.key);
+    } else if (e.key.length === 1) {
+      const c = normalizar(e.key);
+      if (/^[A-Z]$/.test(c)) apertar(c);
+    }
+  });
+
+  window.addEventListener("resize", () => { ajustarTamanho(); });
+
+  iniciarPalavra();
+</script>
+</body>
+</html>
